@@ -1,0 +1,700 @@
+Product Requirements Document (PRD) – “SwasthSahay” (Flutter Healthcare App)
+1. Product Overview
+Product name: SwasthSahay
+Vision: एक ऐसा secure, offline-first healthcare app जहाँ patient अपना treatment history और current diseases देख सके, doctor patients का timeline देखकर सही treatment दे सके, और user medicines व health products खरीद सके—सब कुछ encrypted और privacy-first तरीके से।
+Target users:
+
+Patients (general public)
+
+Doctors (verified practitioners)
+
+Shoppers (sirf products खरीदने वाले, medical record नहीं)
+
+Platforms: Android + iOS (Flutter single codebase)
+
+Key differentiator: Offline-first + encrypted local storage + simple patient timeline + doctor-friendly view, जो कम internet वाले areas में भी काम करे।
+
+2. Goals & Success Metrics
+2.1 Business Goals
+Patient और doctor के बीच medical information gap कम करना।
+
+Medicines और health products की discoverability बढ़ाना।
+
+Trusted, secure health data platform बनाना।
+
+2.2 User Goals
+Patient:
+
+आसानी से apni diseases, treatments, prescriptions timeline में देखना।
+
+Medicines और products खरीदना।
+
+Doctor:
+
+Patients का पूरा medical history एक जगह देखना।
+
+Quick prescriptions और notes add करना।
+
+Shopper:
+
+Products browse, search, order करना।
+
+2.3 Success Metrics (MVP phase)
+70%+ users का first session में successful signup + profile creation।
+
+50%+ patients ने कम से कम 1 condition या treatment add किया।
+
+60%+ doctors ने कम से कम 1 patient को prescription दिया।
+
+Crash-free sessions > 95%।
+
+Offline mode में data add करके online sync success rate > 90%।
+
+3. User Roles & Permissions
+Role	Login type	Key capabilities
+Patient	Patient login	- Apna profile manage
+- Conditions, treatments, prescriptions add/view
+- Medicines/products buy
+- Appointments book (future)
+Doctor	Doctor login (verified)	- Apne patients ki list
+- Har patient ka timeline (conditions, treatments, prescriptions)
+- Naya treatment/prescription add/edit
+- Patient notes
+Shopper	Normal user login	- Products browse/search
+- Cart, checkout, orders
+- No access to medical records
+Admin	Internal only	- Doctors verify
+- Products approve/reject
+- Disputes, refunds, reports
+Access control rule:
+
+Patient → sirf apna data
+
+Doctor → sirf apne assigned patients का data
+
+Shopper → sirf products & orders
+
+Admin → full access (audit logged)
+
+4. Core Features (MVP Scope)
+4.1 Authentication & Onboarding
+Features:
+
+Phone number + OTP login (preferred) या email+password
+
+Role selection: Patient / Doctor / Shopper
+
+Patient: basic profile (name, DOB, gender, allergies, chronic conditions)
+
+Doctor: profile + registration number + specialization + clinic info (admin verification pending)
+
+Shopper: basic profile (name, phone, address)
+
+Rules:
+
+Har login session में JWT + refresh token use होगा।
+
+Sensitive actions (doctor verification, prescription add) के लिए re-authentication optional (future)।
+
+Biometric login (fingerprint/face) optional, par recommended।
+
+4.2 Patient Module
+4.2.1 Patient Dashboard
+Features:
+
+Patient ID display (unique, readable format: “PAT-XXXX-XXXX”)
+
+Quick stats:
+
+Active conditions count
+
+Total treatments count
+
+Current prescriptions count
+
+Quick actions:
+
+“Add New Condition”
+
+“Add New Treatment”
+
+“Buy Medicines”
+
+Rules:
+
+Patient sirf apna data देख और edit कर सकता है।
+
+Patient ID immutable; backend generate करेगा।
+
+4.2.2 Conditions (Bimariyan)
+Data fields:
+
+id (UUID)
+
+patient_id (FK)
+
+disease_name (string)
+
+diagnosed_at (datetime)
+
+status: active | resolved
+
+resolved_at (nullable datetime)
+
+notes (optional text)
+
+created_at, updated_at
+
+Features:
+
+List of conditions (timeline view: newest first)
+
+Add new condition
+
+Mark condition as resolved (with resolved_at)
+
+Edit condition details
+
+Rules:
+
+Patient और doctor दोनों condition add/edit कर सकते हैं (doctor के actions audit log होंगे)।
+
+Resolved condition को दोबारा active नहीं किया जा सकता; नई entry बनानी होगी।
+
+4.2.3 Treatments & Prescriptions
+Treatments fields:
+
+id (UUID)
+
+patient_id (FK)
+
+doctor_id (FK, nullable if self-added)
+
+diagnosis_summary (text)
+
+start_date, end_date (nullable)
+
+status: ongoing | completed
+
+notes
+
+Prescriptions fields:
+
+id (UUID)
+
+treatment_id (FK)
+
+medicine_name (string)
+
+dosage (string, e.g., “500 mg”)
+
+frequency (string, e.g., “twice daily”)
+
+duration_days (int)
+
+instructions (text)
+
+start_date, end_date
+
+Features:
+
+Patient:
+
+Treatments list (timeline)
+
+Har treatment ke andar prescriptions view
+
+Khud se treatment/prescription add (self-reported)
+
+Doctor:
+
+Patient ke liye naya treatment create
+
+Us treatment ke andar prescriptions add/edit
+
+Rules:
+
+Doctor द्वारा add किया गया prescription “doctor-verified” flag पाएगा।
+
+Patient द्वारा add किया गया prescription “self-reported” flag पाएगा; doctor इसे confirm/edit कर सकता है।
+
+Prescriptions में medicine name mandatory; dosage/frequency optional पर highly recommended।
+
+4.2.4 Medicine & Products Shopping
+Features:
+
+Products list (medicines, devices, wellness products)
+
+Search, category filter
+
+Product detail: name, description, price, stock, usage instructions
+
+Cart, checkout, order confirmation
+
+Orders list & order detail
+
+Rules:
+
+Shopper और Patient दोनों खरीद सकते हैं।
+
+Prescription-only medicines के लिए future में prescription upload/validation logic जोड़ा जा सकता है (MVP में optional)।
+
+Orders का status: pending → confirmed → shipped → delivered / cancelled।
+
+4.3 Doctor Module
+4.3.1 Doctor Dashboard
+Features:
+
+Verified status indicator (pending/verified)
+
+Stats: total patients, active patients, today’s appointments (future)
+
+Quick actions:
+
+“Add Patient” (search by phone/patient ID)
+
+“View My Patients”
+
+Rules:
+
+Unverified doctors sirf limited features देखेंगे (e.g., profile edit, no patient access)।
+
+4.3.2 Patients List & Timeline
+Features:
+
+Patients list: name, patient ID, last visit date, active conditions count
+
+Search by name, phone, patient ID
+
+Patient detail screen:
+
+Conditions timeline
+
+Treatments timeline
+
+Current prescriptions
+
+Doctor notes
+
+Rules:
+
+Doctor sirf unhi patients का data देख/बदल सकता है जो उससे linked हैं (doctor_id = current doctor)।
+
+हर view/edit action audit log में save होगा (who, what, when)।
+
+4.3.3 Prescription & Treatment Management
+Features:
+
+Patient detail screen se:
+
+“Add New Treatment”
+
+Existing treatment में “Add Prescription”
+
+Treatment status change (ongoing → completed)
+
+Prescription templates (common dosages) for faster entry (future)
+
+Rules:
+
+Doctor prescription add करते समय:
+
+Medicine name mandatory
+
+Dosage/frequency/duration highly recommended
+
+Notes optional
+
+Doctor prescription edit कर सकता है; patient sirf view कर सकता है (doctor-verified prescriptions)।
+
+4.4 Offline-First & Sync (Flutter Specific)
+4.4.1 Local Storage
+Tech choices (Flutter):
+
+Local DB: Isar या Hive (fast, NoSQL, Flutter-friendly)
+
+Encryption:
+
+Sensitive tables (conditions, treatments, prescriptions) को AES-256 से encrypt
+
+Keys को platform keystore (Android Keystore, iOS Keychain) में store
+
+Secure storage plugin: flutter_secure_storage या local_auth + custom wrapper
+
+Rules:
+
+PHI (conditions, treatments, prescriptions, patient profile) हमेशा encrypted रहेगी।
+
+Non-sensitive data (products, categories) को plain store किया जा सकता है।
+
+4.4.2 Sync Architecture
+Local schema additions:
+
+हर record में:
+
+sync_status: pending | synced | failed
+
+server_id (nullable; backend se milne par fill)
+
+last_synced_at (nullable)
+
+Sync flow:
+
+App start/connectivity change पर:
+
+Check network status
+
+If online → trigger sync
+
+Push:
+
+Local pending inserts/updates को batch में server भेजें
+
+Pull:
+
+Server se naye/updated records fetch कर local merge
+
+Conflict resolution:
+
+Default: “last-write-wins” based on updated_at
+
+Doctor prescriptions > patient self-reported entries (priority rule)
+
+Rules:
+
+Offline mode में सभी CRUD operations local DB पर होंगे; UI को पता नहीं चलना चाहिए कि data abhi sync नहीं हुआ, सिवाय optional “Sync pending” indicator के।
+
+Sync failures को retry queue में डाला जाएगा (exponential backoff)।
+
+4.5 Security & Privacy Rules
+General:
+
+सारे network calls HTTPS (TLS 1.2+) over होंगे।
+
+Backend में sensitive columns (disease_name, diagnosis_summary, prescriptions) encrypted रहेंगे (field-level encryption optional par recommended)।
+
+Authentication & Authorization:
+
+JWT access token (short expiry) + refresh token (long expiry)
+
+Token को secure storage में रखें; clear on logout
+
+Role-based UI:
+
+Patient features sirf patient role को
+
+Doctor features sirf doctor role को
+
+Shopper features sabko, par medical records sirf patient/doctor को
+
+Audit Logging:
+
+Backend में audit_logs table:
+
+user_id, role, action (view_condition, add_prescription, etc.)
+
+resource_type, resource_id
+
+timestamp, ip_address, device_info
+
+Doctor द्वारा patient data access हर बार log होगा।
+
+Privacy:
+
+Push notifications में PHI नहीं भेजनी (no disease names, no medicine details)।
+
+Analytics में PHI नहीं भेजना; anonymized events use करना।
+
+5. Non-Functional Requirements
+Performance:
+
+App cold start < 3 seconds (mid-range Android)
+
+Local queries (conditions/treatments list) < 300 ms
+
+Reliability:
+
+Offline mode में core features (view/add conditions, treatments, prescriptions) fully functional
+
+Sync success rate > 90% within 5 minutes of going online
+
+Security:
+
+All PHI encrypted at rest (local + server)
+
+No PHI in logs, analytics, or crash reports
+
+Scalability (future):
+
+Backend designed for horizontal scaling (stateless APIs, DB read replicas)
+
+6. Flutter Architecture Guidelines
+6.1 Project Structure
+text
+lib/
+  core/
+    constants/
+    errors/
+    network/
+    security/
+      encryption_service.dart
+      secure_storage_service.dart
+    sync/
+      sync_manager.dart
+      sync_queue.dart
+  data/
+    local/
+      models/
+        condition_model.dart
+        treatment_model.dart
+        prescription_model.dart
+        product_model.dart
+        order_model.dart
+      databases/
+        app_database.dart (Isar/Hive)
+      repositories/
+        local_condition_repo.dart
+        local_treatment_repo.dart
+        local_prescription_repo.dart
+        local_product_repo.dart
+        local_order_repo.dart
+    remote/
+      apis/
+        auth_api.dart
+        patient_api.dart
+        doctor_api.dart
+        product_api.dart
+      models/
+        (DTOs for API)
+      repositories/
+        remote_patient_repo.dart
+        remote_doctor_repo.dart
+        remote_product_repo.dart
+  domain/
+    entities/
+      condition.dart
+      treatment.dart
+      prescription.dart
+      product.dart
+      order.dart
+    repositories/
+      condition_repo.dart
+      treatment_repo.dart
+      prescription_repo.dart
+      product_repo.dart
+      order_repo.dart
+    usecases/
+      add_condition.dart
+      get_patient_timeline.dart
+      add_prescription_by_doctor.dart
+      sync_patient_data.dart
+  presentation/
+    auth/
+      login_screen.dart
+      role_selection_screen.dart
+    patient/
+      patient_dashboard.dart
+      conditions_list_screen.dart
+      condition_detail_screen.dart
+      treatments_list_screen.dart
+      treatment_detail_screen.dart
+      shopping_screen.dart
+      orders_screen.dart
+    doctor/
+      doctor_dashboard.dart
+      patients_list_screen.dart
+      patient_detail_screen.dart
+      add_treatment_screen.dart
+      add_prescription_screen.dart
+    shopper/
+      products_list_screen.dart
+      product_detail_screen.dart
+      cart_screen.dart
+      checkout_screen.dart
+      orders_screen.dart
+    widgets/
+      timeline_tile.dart
+      condition_card.dart
+      prescription_card.dart
+      product_card.dart
+  main.dart
+6.2 State Management
+Recommended: Riverpod या Bloc
+
+Reasons: testable, scalable, clear separation of UI & logic
+
+Use cases (domain layer) को pure Dart classes में रखें; UI sirf observe करे।
+
+6.3 Local Database (Isar Example)
+dart
+@collection
+class ConditionLocal {
+  Id id = Isar.autoIncrement;
+  @Index(type: IndexType.hash)
+  late String patientId;
+  late String diseaseName;
+  late DateTime diagnosedAt;
+  late String status; // 'active' | 'resolved'
+  DateTime? resolvedAt;
+  String? notes;
+  late DateTime createdAt;
+  late DateTime updatedAt;
+
+  late String syncStatus; // 'pending' | 'synced' | 'failed'
+  String? serverId;
+  DateTime? lastSyncedAt;
+}
+Encryption wrapper:
+
+ConditionLocal, TreatmentLocal, PrescriptionLocal को save करते समय encryption_service से encrypt करके store करें; read करते समय decrypt करें।
+
+6.4 Sync Manager (High Level)
+dart
+class SyncManager {
+  final LocalConditionRepo localConditionRepo;
+  final RemotePatientRepo remotePatientRepo;
+  final Connectivity connectivity;
+
+  Future<void> syncAll() async {
+    if (!await connectivity.isConnected) return;
+
+    await Future.wait([
+      syncConditions(),
+      syncTreatments(),
+      syncPrescriptions(),
+    ]);
+  }
+
+  Future<void> syncConditions() async {
+    final pending = await localConditionRepo.getPendingSync();
+    for (final c in pending) {
+      try {
+        await remotePatientRepo.upsertCondition(c.toRemoteDto());
+        await localConditionRepo.markSynced(c.id);
+      } catch (_) {
+        await localConditionRepo.markSyncFailed(c.id);
+      }
+    }
+
+    final remoteConditions = await remotePatientRepo.getUpdatedConditionsSince(...);
+    await localConditionRepo.mergeRemote(remoteConditions);
+  }
+}
+Sync को app start, connectivity change, और periodic timer (e.g., every 15 minutes when app in foreground) पर trigger करें।
+
+7. API Design (High Level)
+7.1 Auth
+POST /auth/otp/request – phone number
+
+POST /auth/otp/verify – phone + OTP → returns access_token, refresh_token, user profile
+
+POST /auth/refresh – refresh_token → new access_token
+
+7.2 Patient
+GET /patient/profile
+
+PUT /patient/profile
+
+GET /patient/conditions
+
+POST /patient/conditions
+
+PUT /patient/conditions/:id
+
+GET /patient/treatments
+
+POST /patient/treatments
+
+GET /patient/treatments/:id/prescriptions
+
+POST /patient/treatments/:id/prescriptions
+
+7.3 Doctor
+GET /doctor/patients
+
+GET /doctor/patients/:patientId/timeline
+
+POST /doctor/patients/:patientId/treatments
+
+POST /doctor/treatments/:treatmentId/prescriptions
+
+PUT /doctor/prescriptions/:id
+
+7.4 Products & Orders
+GET /products (query: category, search)
+
+GET /products/:id
+
+POST /orders
+
+GET /orders
+
+GET /orders/:id
+
+Sabhi endpoints में Authorization: Bearer <access_token> header required।
+
+8. Development Phases (MVP Focused)
+Phase 1 – Foundation (1–2 weeks)
+Flutter project setup, folder structure
+
+Auth flow (OTP mock → later real SMS)
+
+Local DB + encryption service
+
+Basic patient profile CRUD (offline-first)
+
+Phase 2 – Patient Timeline (2 weeks)
+Conditions add/view/resolve
+
+Treatments & prescriptions add/view
+
+Patient dashboard + timeline UI
+
+Sync manager basic implementation
+
+Phase 3 – Doctor Module (2 weeks)
+Doctor login & profile
+
+Patients list & patient detail timeline
+
+Doctor-driven treatments & prescriptions
+
+Audit logging (backend)
+
+Phase 4 – Marketplace (optional for hackathon)
+Products list & detail
+
+Cart, checkout (mock payment)
+
+Orders list
+
+Phase 5 – Hardening (1 week)
+Security review (encryption, token handling)
+
+Offline scenarios testing
+
+Bug fixes, polish, demo preparation
+
+9. Risk & Mitigation
+Risk: Encryption keys lose हो जाएँ (app reinstall, device change)
+
+Mitigation: Keys को backend से derive करने का mechanism (advanced) या user को warning कि local data reinstall पर चला जाएगा।
+
+Risk: Sync conflicts复杂 हो जाएँ
+
+Mitigation: MVP में simple “last-write-wins” + doctor-prescription priority; complex rules को future में ले जाएँ।
+
+Risk: Scope creep (bahut सारे features)
+
+Mitigation: Strict MVP scope; shopping module को optional रखें।
+
+10. Next Step (Actionable)
+अगला कदम:
+
+Decide करें: hackathon के लिए Phase 1 + Phase 2 + basic Phase 3 (patient timeline + doctor view) sufficient है, या shopping module भी जोड़ना है?
+
+उसी हिसाब से मैं तुम्हें:
+
+Exact Flutter packages list (pubspec.yaml)
+
+Sample encryption_service.dart, app_database.dart, और एक complete example screen (patient conditions list + add condition) दे सकता हूँ।
